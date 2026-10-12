@@ -40,6 +40,12 @@ COLOR_OPTIONS = [
     ("ブラウン", "🟤", "brown"),
     ("シアン", "💎", "cyan"),
     ("ライム", "🍈", "lime"),
+    ("バナナ", "🍌", "banana"),
+    ("グレー", "🩶", "gray"),
+    ("ローズ", "🌸", "rose"),
+    ("コーラル", "🐙", "coral"),
+    ("タン", "🍖", "tan"),
+    ("マルーン", "🍈", "maroon"),
 ]
 
 class ColorSelectView(discord.ui.View):
@@ -64,7 +70,7 @@ class ColorSelectView(discord.ui.View):
         async def callback(interaction: discord.Interaction):
             user = interaction.user
             if user not in self.main_view.participants:
-                await interaction.response.send_message("⚠️ カラー選択は「参加者」のみ可能です。先に『参加』ボタンを押してください。", ephemeral=True)
+                await interaction.response.send_message("⚠️ 色選択は「参加者」のみ可能です。『参加』ボタンを押してから選択してください。", ephemeral=True)
                 return
 
             if self.main_view.is_closed:
@@ -105,7 +111,7 @@ class RecruitmentView(discord.ui.View):
         self.color_message: Optional[discord.Message] = None
 
     def create_main_embed(self) -> discord.Embed:
-        status = "🔴 募集終了" if self.is_closed else "🎮 募集を開始しました 🎮"
+        status = "🔴 募集終了" if self.is_closed else "💻 募集を開始しました ⌨️"
         embed = discord.Embed(
             title=status,
             description=f"**{self.title}**\n\n{self.description}",
@@ -121,8 +127,8 @@ class RecruitmentView(discord.ui.View):
 
     def create_color_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title="上記募集の AmongUs希望色（先着順）",
-            description="色選択は参加者のみできます。\n解除＝選択を取り消し / FREE＝色おまかせ・未定\n✅ 募集終了後も色は変更できます。",
+            title="上記募集のAmongUs希望色（先着順）",
+            description="色選択は参加者のみ可能です。\n解除＝選択を取り消し / FREE＝色おまかせ・未定\n✅ 募集終了後も色は変更できます。",
             color=discord.Color.dark_purple()
         )
         lines = []
