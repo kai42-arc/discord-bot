@@ -6,9 +6,7 @@ from discord.ext import commands
 from discord import app_commands
 from typing import Dict, Optional, List
 
-# ---------------------------------------------------------
-# Render用のWebサーバー設定（ポート開放エラー回避）
-# ---------------------------------------------------------
+# --- Flask Keep Alive ---
 app = Flask('')
 
 @app.route('/')
@@ -21,15 +19,12 @@ def run_flask():
 
 def keep_alive():
     t = threading.Thread(target=run_flask)
+    t.daemon = True
     t.start()
 
-
-# ---------------------------------------------------------
-# Discord Bot 設定
-# ---------------------------------------------------------
+# --- Discord Bot Setup ---
 intents = discord.Intents.default()
 intents.message_content = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 COLOR_OPTIONS = [
@@ -47,9 +42,6 @@ COLOR_OPTIONS = [
     ("ライム", "🍈", "lime"),
 ]
 
-# ---------------------------------------------------------
-# カラー選択 View
-# ---------------------------------------------------------
 class ColorSelectView(discord.ui.View):
     def __init__(self, main_view: 'RecruitmentView'):
         super().__init__(timeout=None)
@@ -99,10 +91,6 @@ class ColorSelectView(discord.ui.View):
 
         return callback
 
-
-# ---------------------------------------------------------
-# メイン募集 View
-# ---------------------------------------------------------
 class RecruitmentView(discord.ui.View):
     def __init__(self, author: discord.Member, title: str, description: str, capacity: int):
         super().__init__(timeout=None)
@@ -123,25 +111,12 @@ class RecruitmentView(discord.ui.View):
             description=f"**{self.title}**\n\n{self.description}",
             color=discord.Color.red() if self.is_closed else discord.Color.blue()
         )
-
         embed.add_field(name="募集者", value=self.author.mention, inline=False)
-
         members_str = "\n".join([m.display_name for m in self.participants]) if self.participants else "なし"
-        embed.add_field(
-            name=f"参加者 ({len(self.participants)}/{self.capacity})",
-            value=members_str,
-            inline=False
-        )
-
-        embed.add_field(
-            name="操作案内",
-            value="・**参加 / 辞退**: `✅ 参加` ボタン（再度押すと辞退）\n・**色選択**: 下のカラーパネルから選択できます。",
-            inline=False
-        )
-
+        embed.add_field(name=f"参加者 ({len(self.participants)}/{self.capacity})", value=members_str, inline=False)
+        embed.add_field(name="操作案内", value="・**参加 / 辞退**: `✅ 参加` ボタン（再度押すと辞退）\n・**色選択**: 下のカラーパネルから選択できます。", inline=False)
         if self.message:
             embed.set_footer(text=f"message_id: {self.message.id}")
-
         return embed
 
     def create_color_embed(self) -> discord.Embed:
@@ -150,24 +125,20 @@ class RecruitmentView(discord.ui.View):
             description="色選択は参加者のみできます。\n解除＝選択を取り消し / FREE＝色おまかせ・未定\n✅ 募集終了後も色は変更できます。",
             color=discord.Color.dark_purple()
         )
-
         lines = []
         for label, emoji, cid in COLOR_OPTIONS:
             assigned_users = [m.display_name for m in self.participants if self.user_colors.get(m.id) == cid]
             if assigned_users:
                 lines.append(f"{emoji} **{label}**：{', '.join(assigned_users)}")
-
         free_users = [m.display_name for m in self.participants if self.user_colors.get(m.id) == "free" or m.id not in self.user_colors]
         if free_users:
             lines.append(f"🆓 **FREE**：{', '.join(free_users)}")
-
         embed.add_field(name="現在の割り当て", value="\n".join(lines) if lines else "なし", inline=False)
         return embed
 
     async def update_messages(self, interaction: discord.Interaction):
         main_embed = self.create_main_embed()
         color_embed = self.create_color_embed()
-
         if interaction.response.is_done():
             if self.message:
                 await self.message.edit(embed=main_embed, view=self)
@@ -181,16 +152,13 @@ class RecruitmentView(discord.ui.View):
     @discord.ui.button(label="参加", style=discord.ButtonStyle.success, emoji="✅", custom_id="join_toggle_btn")
     async def join_toggle_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
-
         if user in self.participants:
             self.participants.remove(user)
             if user.id in self.user_colors:
                 del self.user_colors[user.id]
-            
             if self.is_closed and len(self.participants) < self.capacity:
                 self.is_closed = False
                 button.disabled = False
-
             await interaction.response.send_message("参加をキャンセル（辞退）しました。", ephemeral=True)
             await self.update_messages(interaction)
             return
@@ -204,7 +172,6 @@ class RecruitmentView(discord.ui.View):
             return
 
         self.participants.append(user)
-
         if len(self.participants) >= self.capacity:
             self.is_closed = True
             button.disabled = True
@@ -212,9 +179,7 @@ class RecruitmentView(discord.ui.View):
         await interaction.response.send_message("参加登録しました！下のカラーパネルから希望色を選んでください。", ephemeral=True)
         await self.update_messages(interaction)
 
-
 active_recruitments: Dict[int, RecruitmentView] = {}
-
 
 @bot.event
 async def on_ready():
@@ -225,18 +190,11 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-
 @bot.tree.command(name="recruit", description="新規募集を開始します")
-@app_commands.describe(
-    title="募集タイトル",
-    description="詳細説明",
-    capacity="定員人数（数字のみ）"
-)
+@app_commands.describe(title="募集タイトル", description="詳細説明", capacity="定員人数（数字のみ）")
 async def recruit(interaction: discord.Interaction, title: str, description: str, capacity: int = 11):
     await interaction.response.defer()
-
     view = RecruitmentView(author=interaction.user, title=title, description=description, capacity=capacity)
-    
     main_embed = view.create_main_embed()
     main_msg = await interaction.followup.send(embed=main_embed, view=view, wait=True)
     view.message = main_msg
@@ -248,7 +206,6 @@ async def recruit(interaction: discord.Interaction, title: str, description: str
 
     await main_msg.edit(embed=view.create_main_embed())
     active_recruitments[main_msg.id] = view
-
 
 @bot.tree.command(name="close", description="【作成者専用】指定した募集を終了します")
 @app_commands.describe(message_id="終了したい募集メッセージのID")
@@ -266,7 +223,6 @@ async def close_recruitment(interaction: discord.Interaction, message_id: str):
 
     is_author = interaction.user.id == view.author.id
     is_admin = interaction.user.guild_permissions.administrator
-
     if not (is_author or is_admin):
         await interaction.response.send_message("⚠️ 募集を終了できるのは「作成者本人」または「管理者」のみです。", ephemeral=True)
         return
@@ -279,9 +235,10 @@ async def close_recruitment(interaction: discord.Interaction, message_id: str):
     await view.message.edit(embed=view.create_main_embed(), view=view)
     await interaction.response.send_message("募集を終了（締め切り）しました。", ephemeral=True)
 
-
-# Webサーバーをバックグラウンドで起動
-asyncio.run(main())
-
-# Discord Bot起動
-bot.run(os.getenv('DISCORD_TOKEN'))
+if __name__ == "__main__":
+    keep_alive()
+    token = os.getenv('DISCORD_TOKEN')
+    if token:
+        bot.run(token)
+    else:
+        print("Error: DISCORD_TOKEN environment variable is not set.")
