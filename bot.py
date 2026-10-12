@@ -281,7 +281,7 @@ async def close_recruitment(interaction: discord.Interaction, message_id: str):
 
 
 # Webサーバーをバックグラウンドで起動
-asyncio()
+asyncio.run(main())
 
 # Discord Bot起動
 bot.run(os.getenv('DISCORD_TOKEN'))
