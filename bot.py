@@ -29,7 +29,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ご指定の18色定義
 COLOR_OPTIONS = [
-    ("レッド", "🔴", "red"),
+    ("レッド", "emoji_1:1560126851584888902", "red"),  # 赤のみカスタム絵文字を適用
     ("ブルー", "🔷", "blue"),
     ("グリーン", "🟢", "green"),
     ("ピンク", "🌸", "pink"),
