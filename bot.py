@@ -39,7 +39,7 @@ class RecruitmentView(discord.ui.View):
         self.message: Optional[discord.Message] = None
 
     def create_main_embed(self) -> discord.Embed:
-        status = "🔴 募集終了" if self.is_closed else "💻 募集を開始しました 🎮"
+        status = "🔴 募集終了" if self.is_closed else "🎮 募集を開始しました 🎮"
         embed = discord.Embed(
             title=status,
             description=f"**{self.title}**\n\n{self.description}",
